@@ -1,0 +1,370 @@
+.profile-page {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 20px;
+}
+
+/* Profile header */
+
+.profile-header {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    gap: 25px;
+    margin-bottom: 25px;
+}
+
+.profile-picture {
+    position: relative;
+    width: 110px;
+    height: 110px;
+}
+
+.profile-picture img {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid #eee;
+}
+
+.change-pfp {
+    position: absolute;
+    bottom: 0;
+    right: -10px;
+    background: #212529;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.profile-basic h2 {
+    margin: 0;
+}
+
+.profile-basic p {
+    margin: 5px 0 10px;
+    color: #777;
+}
+
+.role-badge {
+    background: #e9ecef;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+}
+
+
+/* Main card */
+
+.profile-card {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+}
+
+.card-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.card-heading h3 {
+    margin: 0;
+}
+
+.card-heading p {
+    color: #777;
+    margin-top: 5px;
+}
+
+
+/* Form */
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    margin-bottom: 7px;
+    font-weight: 600;
+}
+
+.form-group input {
+    padding: 11px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    outline: none;
+}
+
+.form-group input:focus {
+    border-color: #555;
+}
+
+
+/* Buttons */
+
+.form-actions {
+    display: none;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 25px;
+}
+
+.btn {
+    border: none;
+    padding: 10px 18px;
+    border-radius: 7px;
+    cursor: pointer;
+}
+.profile-top {
+    display: flex;
+    justify-content: flex-start;
+    margin-bottom: 15px;
+}
+.profile-top a{
+
+    text-decoration: none;
+}
+.back-link {
+    color: #555;
+    font-size: 15px;
+    font-weight: 500;
+
+    transition: 0.2s ease;
+}
+
+.back-link:hover {
+    color: #000;
+    transform: translateX(-3px);
+}
+
+.contract-filter {
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.contract-filter:hover {
+    transform: translateY(-2px);
+}
+
+.contract-filter.active {
+    border: 2px solid #0d6efd;
+}
+
+.contract-card {
+    padding: 20px;
+    border: 1px solid #e5e5e5;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    transition: 0.2s ease;
+}
+
+.contract-card:hover {
+    transform: translateY(-2px);
+}
+
+.contract-icon {
+    width: 45px;
+    height: 45px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #eef4ff;
+    color: #0d6efd;
+    font-size: 20px;
+}
+/* =========================================================
+CONTRACTS
+========================================================= */
+
+.contract-stat {
+background: white;
+border-radius: 14px;
+padding: 20px;
+border: none;
+box-shadow: 0 3px 15px rgba(0,0,0,.05);
+}
+
+.contract-stat-icon {
+width: 48px;
+height: 48px;
+border-radius: 12px;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 21px;
+}
+
+.contract-card {
+background: white;
+border-radius: 16px;
+border: none;
+box-shadow: 0 3px 15px rgba(0,0,0,.05);
+transition: .2s ease;
+overflow: hidden;
+}
+
+.contract-card:hover {
+transform: translateY(-3px);
+box-shadow: 0 8px 25px rgba(0,0,0,.08);
+}
+
+.contract-card-header {
+padding: 20px 22px 10px;
+}
+
+.contract-card-body {
+padding: 10px 22px 22px;
+}
+
+.contract-role {
+font-size: 12px;
+font-weight: 700;
+letter-spacing: .5px;
+padding: 6px 10px;
+border-radius: 20px;
+}
+
+.role-worker {
+background: #e7f1ff;
+color: #0d6efd;
+}
+
+.role-manager {
+background: #e8f8ef;
+color: #198754;
+}
+
+.contract-status {
+font-size: 12px;
+font-weight: 600;
+padding: 6px 10px;
+border-radius: 20px;
+}
+
+.status-pending {
+background: #fff3cd;
+color: #856404;
+}
+
+.status-accepted {
+background: #cff4fc;
+color: #055160;
+}
+
+.status-progress {
+background: #cfe2ff;
+color: #084298;
+}
+
+.status-review {
+background: #e2d9f3;
+color: #432874;
+}
+
+.status-completed {
+background: #d1e7dd;
+color: #0f5132;
+}
+
+.contract-meta {
+font-size: 14px;
+}
+
+.contract-meta i {
+width: 20px;
+}
+
+.contract-progress {
+height: 7px;
+border-radius: 10px;
+}
+
+.contract-empty {
+padding: 60px 20px;
+text-align: center;
+}
+
+.contract-empty-icon {
+width: 75px;
+height: 75px;
+margin: auto;
+border-radius: 50%;
+display: flex;
+align-items: center;
+justify-content: center;
+background: #e7f1ff;
+color: #0d6efd;
+font-size: 32px;
+}
+
+/* CONTRACT VIEW MODAL */
+
+.contract-view-header {
+background: linear-gradient(135deg, #111827, #1f2937);
+color: white;
+padding: 25px;
+}
+
+.contract-detail-box {
+background: #f8f9fa;
+border-radius: 12px;
+padding: 15px;
+height: 100%;
+}
+
+.contract-detail-label {
+font-size: 12px;
+color: #6c757d;
+text-transform: uppercase;
+letter-spacing: .5px;
+margin-bottom: 4px;
+}
+
+.contract-detail-value {
+font-weight: 600;
+}
+
+.contract-action-area {
+border-top: 1px solid #eee;
+padding-top: 20px;
+}
+
+/* DARK MODE */
+
+body.dark-mode .contract-stat,
+body.dark-mode .contract-card {
+background: #1e1e1e;
+color: #f5f5f5;
+}
+
+body.dark-mode .contract-detail-box {
+background: #2a2a2a;
+}
+
+body.dark-mode .contract-action-area {
+border-color: #444;
+}
+
+body.dark-mode .contract-detail-label {
+color: #aaa;
+}
+
+body.dark-mode .contract-card .text-muted {
+color: #aaa !important;
+}
