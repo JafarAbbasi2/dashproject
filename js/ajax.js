@@ -852,7 +852,7 @@ $("#createContractBtn").on("click", function(){
 
 
 $.ajax({
-    url: "contract/fetchuser.php",
+    url: "actions/fetchuser.php",
     method: "GET",
     dataType: "json",
 

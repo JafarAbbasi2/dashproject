@@ -497,7 +497,9 @@ if(localStorage.getItem("darkMode") === "on"){
 
     //   ------------------ CONTRACT PAGE ---------------------
 
+    let allContracts = [];
     function showcontracts() {
+
 
     $.ajax({
         url: "../contract/getcontracts.php",
@@ -516,10 +518,26 @@ if(localStorage.getItem("darkMode") === "on"){
 
 
             $("#contractsLoading").addClass("d-none");
+                        
+            $("#refreshContractsBtn")
+                .prop("disabled", false)
+                .html(originalRefreshButtonHtml);
 
             $("#contractsContainer").find(".contract-card").remove();
-            
-            if(response.length === 0){
+                        
+             if (
+                !response ||
+                response.status !== true ||
+                !Array.isArray(response.contract)
+            ) {
+                console.error("Unexpected contracts response:", response);
+                $("#contractsEmpty").addClass("d-none");
+                return;
+            }
+
+                allContracts = response.contract;
+
+            if (response.contract.length === 0) {
                 $("#contractsEmpty").removeClass("d-none");
                 updateContractStats([]);
                 return;
@@ -531,7 +549,7 @@ if(localStorage.getItem("darkMode") === "on"){
 
             response.contract.forEach(function (contract){
 
-                html +=   `  <div class="col-md-6 contract-card">
+                html +=   `  <div class="col-md-6 contract-card" data-contract-id="${contract.id}">
 
                     <div class="card-box p-4 h-100">
 
@@ -612,11 +630,11 @@ if(localStorage.getItem("darkMode") === "on"){
                 `;
                 
             });
+$("#contractsContainer").prepend(html);
 
-            $("#contractsContainer").prepend(html);
-
-            updateContractStats(response.contract);
-        },
+updateContractStats(allContracts);
+applyContractFilters();
+ },
 
         error: function(xhr) {
 
@@ -624,6 +642,10 @@ if(localStorage.getItem("darkMode") === "on"){
             console.log(xhr.responseText);
 
             $("#contractsLoading").addClass("d-none");
+
+$("#refreshContractsBtn")
+    .prop("disabled", false)
+    .html(originalRefreshButtonHtml);
 
             $("#contractsContainer").html(`
 
@@ -647,6 +669,38 @@ if(localStorage.getItem("darkMode") === "on"){
 }
 
 showcontracts();
+
+// ------------------------refresh-button-------------------------
+
+const originalRefreshButtonHtml = $("#refreshContractsBtn").html();
+
+$("#refreshContractsBtn").on("click", function () {
+
+    const button = $(this);
+
+    if (button.prop("disabled")) {
+        return;
+    }
+
+    // Reset all filters and search.
+    $("#contractSearch").val("");
+    $("#contractStatusFilter").val("all");
+    $("#contractRoleFilter").val("all");
+
+    // Show the loading state.
+    button.prop("disabled", true).html(`
+        <span class="spinner-border spinner-border-sm me-1"></span>
+        Refreshing...
+    `);
+
+    $("#contractsLoading").removeClass("d-none");
+
+    // Fetch the latest contracts from PHP.
+    showcontracts();
+});
+
+
+
 // updateContractStats(response.contract);
 /* ==========================================
    UPDATE CONTRACT STATS
@@ -699,6 +753,79 @@ function updateContractStats(contracts){
 
 }
 
+
+function applyContractFilters() {
+
+    const searchText = $("#contractSearch").val()
+        .trim()
+        .toLowerCase();
+
+    const selectedStatus = $("#contractStatusFilter").val();
+    const selectedRole = $("#contractRoleFilter").val();
+
+    const filteredContracts = allContracts.filter(function(contract) {
+
+        // Search across contract details and assigned people.
+        const searchableText = [
+            contract.id,
+            contract.title,
+            contract.description,
+            contract.worker_name,
+            contract.manager_name
+        ].join(" ").toLowerCase();
+
+        const matchesSearch = searchableText.includes(searchText);
+
+        // Match the selected status to the database status.
+        let status = String(contract.status).toLowerCase();
+
+        if (status === "ongoing") {
+            status = "in_progress";
+        }
+
+        const matchesStatus =
+            selectedStatus === "all" ||
+            status === selectedStatus;
+
+        // The PHP endpoint already returns user_role.
+        const matchesRole =
+            selectedRole === "all" ||
+            contract.user_role === selectedRole;
+
+        return matchesSearch && matchesStatus && matchesRole;
+    });
+
+    const matchingIds = filteredContracts.map(function(contract) {
+        return String(contract.id);
+    });
+
+    $("#contractsContainer .contract-card").each(function() {
+
+        const contractId = String($(this).attr("data-contract-id"));
+
+        $(this).toggle(matchingIds.includes(contractId));
+    });
+
+    // Show the empty state when no contracts match.
+    if (filteredContracts.length === 0) {
+        $("#contractsEmpty").removeClass("d-none");
+    } else {
+        $("#contractsEmpty").addClass("d-none");
+    }
+}
+
+
+$("#contractSearch, #contractStatusFilter, #contractRoleFilter")
+    .on("input change", applyContractFilters);
+
+$("#clearContractFilters").on("click", function() {
+    $("#contractSearch").val("");
+    $("#contractStatusFilter").val("all");
+    $("#contractRoleFilter").val("all");
+
+    applyContractFilters();
+});
+
                 //    VIEW CONTRACT -----------------
 
 $(document).on("click",".view-contract-btn", function(){
@@ -712,6 +839,10 @@ $(document).on("click",".view-contract-btn", function(){
         dataType:"json",
 
         success: function(data){
+
+// Load the activity for the contract being viewed.
+loadRecentActivity(data.id);
+loadContractSubmissions(data.id, data);
 
             $("#userContractModal").modal("show");
             console.log(data);
@@ -737,22 +868,59 @@ $(document).on("click",".view-contract-btn", function(){
                 $("#viewContractId").html(data.id);
                 $("#viewContractDescription").html( data.description);
                 $("#viewContractDeadline").html( data.deadline);
+
+
                 
-            $("#viewContractProgressText").text(data.progress + "%");
+          // Determine what the progress bar should display
+let status = String(data.status).toLowerCase();
 
-            $("#viewContractProgressBar")
-                .css("width", data.progress + "%")
-                .attr("aria-valuenow", data.progress);
+let progress = Number(data.progress) || 0;
+
+if (status === "pending") {
+    progress = 0;
+} else if (status === "under_review" ) {
+    progress = 90;
+} else if (status === "ongoing") {
+    progress =  40 + (progress * 0.6); // Scale ongoing progress to 30-90%  
+} else if (status === "completed") {
+    progress = 100;
+}
+
+// Update the existing progress bar
+$("#viewContractProgressText").text(progress + "%");
+
+$("#viewContractProgressBar")
+    .css("width", progress + "%")
+    .attr("aria-valuenow", progress);
 
 
-                $("#contractActions").empty();
 
-if (
-    String(data["userID"]) === String(data["current-user-id"]) &&
-    ["accepted", "ongoing", "in_progress"].includes(
-        String(data.status).toLowerCase()
-    )
-) {
+
+$("#contractActions").empty();
+
+
+let isWorker =
+    String(data["userID"]) === String(data["current-user-id"]);
+
+
+
+// Show Start Work only to the assigned worker on pending contracts.
+if (isWorker && status === "pending") {
+    $("#contractActions").append(`
+        <button
+            type="button"
+            class="btn btn-success"
+            id="startWorkBtn"
+            data-id="${data.id}"
+        >
+            <i class="bi bi-play-circle me-1"></i>
+            Start Work
+        </button>
+    `);
+}
+
+// Show Submit Work only after work has started.
+if (isWorker && status === "ongoing") {
     $("#contractActions").append(`
         <button
             type="button"
@@ -765,11 +933,57 @@ if (
         </button>
     `);
 }
+
+}
         }
-    })
+    )  
+  })
 
-})
 
+
+
+$(document).on("click", "#startWorkBtn", function () {
+
+    let contractId = $(this).attr("data-id");
+    let button = $(this);
+
+    // Prevent repeated clicks while the request is running.
+    button.prop("disabled", true).text("Starting...");
+
+    $.ajax({
+        url: "../contract/startwork.php",
+        method: "POST",
+        data: JSON.stringify({
+            id: contractId
+        }),
+        contentType: "application/json",
+        dataType: "json",
+
+        success: function (response) {
+
+            if (response.success) {
+                // alert(response.message);
+
+                $("#userContractModal").modal("hide");
+
+                showcontracts();
+            } else {
+                alert(response.message);
+                button.prop("disabled", false).text("Start Work");
+            }
+        },
+
+        error: function (xhr) {
+
+            console.log("START WORK ERROR:", xhr.responseText);
+
+            alert("Unable to start work. Please try again.");
+
+            button.prop("disabled", false).text("Start Work");
+        }
+    });
+
+});
 
 
 $(document).on("click", "#openSubmitWorkBtn", function () {
@@ -791,4 +1005,455 @@ $(document).on("click", "#openSubmitWorkBtn", function () {
     $("#userContractModal").modal("hide");
 
 });
+
+
+$(document).on("submit", "#submitWorkForm", function (e) {
+    e.preventDefault();
+
+    const form = this;
+    const formData = new FormData(form);
+    const button = $("#submitWorkBtn");
+    const message = $("#submitWorkMsg");
+
+    button.prop("disabled", true).text("Submitting...");
+    message.empty();
+
+    $.ajax({
+        url: "../contract/submitwork.php",
+        type: "POST",
+        data: formData,
+        processData: false,
+        contentType: false,
+        dataType: "json",
+
+        success: function (response) {
+            if (response.success) {
+                message.html(
+                    `<div class="alert alert-success">${response.message}</div>`
+                );
+
+                form.reset();
+
+                setTimeout(function () {
+                    $("#submitWorkModal").modal("hide");
+                    showcontracts();
+                    button.prop("disabled", false)
+                          .html('<i class="bi bi-send me-1"></i>Submit Work');
+                    message.empty();
+                }, 1000);
+
+            } else {
+                message.html(
+                    `<div class="alert alert-danger">${response.message}</div>`
+                );
+
+                button.prop("disabled", false)
+                      .html('<i class="bi bi-send me-1"></i>Submit Work');
+            }
+        },
+
+        error: function (xhr) {
+            console.log("SUBMIT WORK ERROR:", xhr.responseText);
+
+            message.html(
+                '<div class="alert alert-danger">A server error occurred. Check the console and PHP error log.</div>'
+            );
+
+            button.prop("disabled", false)
+                  .html('<i class="bi bi-send me-1"></i>Submit Work');
+        }
+    });
+});
+
+
+
+function renderActivity(activity) {
+    const labels = {
+        work_started: "Work Started",
+        work_submitted: "Work Submitted",
+        contract_assigned: "Contract Assigned",
+        revision_requested: "Revision Requested",
+        work_approved: "Work Approved",
+        contract_completed: "Contract Completed"
+    };
+
+    const label = labels[activity.action] || activity.action;
+
+    const date = new Date(
+        activity.created_at.replace(" ", "T")
+    );
+
+    const formattedDate = Number.isNaN(date.getTime())
+        ? activity.created_at
+        : date.toLocaleString();
+
+    return `
+        <div class="d-flex gap-3 mb-3">
+            <div class="rounded-circle bg-primary-subtle text-primary
+                        d-flex align-items-center justify-content-center
+                        flex-shrink-0"
+                 style="width: 40px; height: 40px;">
+                <i class="bi bi-clock-history"></i>
+            </div>
+
+            <div class="flex-grow-1 border-bottom pb-3">
+                <div class="fw-semibold">${escapeActivityText(label)}</div>
+                <div class="text-muted small mt-1">
+                    ${escapeActivityText(activity.details || "")}
+                </div>
+                <div class="text-muted small mt-2">
+                    ${escapeActivityText(formattedDate)}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function escapeActivityText(value) {
+    return String(value).replace(/[&<>"']/g, function (char) {
+        return {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;"
+        }[char];
+    });
+}
+
+function loadContractSubmissions(contractId, contractData) {
+
+    $("#contractSubmissionsList").html(`
+        <div class="text-center py-3">
+            <div class="spinner-border spinner-border-sm"></div>
+            <p class="text-muted mb-0 mt-2">Loading submissions...</p>
+        </div>
+    `);
+
+    $.ajax({
+        url: "../contract/getsubmission.php",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({
+            id: contractId
+        }),
+
+        dataType: "json",
+
+        success: function(response) {
+
+            if (!response.status) {
+                $("#contractSubmissionsList").html(`
+                    <div class="alert alert-warning mb-0">
+                        Could not load submissions.
+                    </div>
+                `);
+                return;
+            }
+
+            const submissions = response.submissions;
+
+            $("#submissionCount").text(submissions.length);
+
+            if (submissions.length === 0) {
+                $("#contractSubmissionsList").html(`
+                    <div class="text-muted text-center py-3">
+                        No work has been submitted yet.
+                    </div>
+                `);
+                return;
+            }
+
+                     let html = "";
+
+            const isManager =
+                Number(contractData["current-user-id"]) ===
+                Number(contractData.managerID);
+
+            const canReview =
+                isManager && contractData.status === "under_review";
+
+            submissions.forEach(function(submission) {
+
+                let reviewButtons = "";
+
+                if (canReview) {
+                    reviewButtons = `
+                        <div class="d-flex flex-wrap gap-2 mt-3">
+
+                            <button
+                                type="button"
+                                class="btn btn-success btn-sm review-submission-btn"
+                                data-contract-id="${contractId}"
+                                data-submission-id="${submission.id}"
+                                data-decision="approve">
+                                <i class="bi bi-check-circle me-1"></i>
+                                Approve
+                            </button>
+
+                            <button
+                                type="button"
+                                class="btn btn-outline-warning btn-sm review-submission-btn"
+                                data-contract-id="${contractId}"
+                                data-submission-id="${submission.id}"
+                                data-decision="revision">
+                                <i class="bi bi-arrow-repeat me-1"></i>
+                                Request Revision
+                            </button>
+
+                        </div>
+                    `;
+                }
+
+                html += `
+                    <div class="contract-detail-box mb-3">
+
+                        <h6 class="fw-bold">
+                            ${escapeActivityText(submission.submission_title)}
+                        </h6>
+
+                        <p class="mb-2">
+                            ${escapeActivityText(submission.submission_description)}
+                        </p>
+
+                       
+${
+    submission.work_file
+        ? `<div class="mt-3">
+               <i class="bi bi-paperclip me-1"></i>
+               <a
+                   href="../${escapeActivityText(submission.work_file)}"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="btn btn-outline-primary btn-sm">
+                   <i class="bi bi-eye me-1"></i>
+                   Open Submitted File
+               </a>
+           </div>`
+        : `<small class="text-muted">No file attached.</small>`
+}
+
+                        ${reviewButtons}
+
+                    </div>
+                `;
+            });
+
+
+            
+
+            $("#contractSubmissionsList").html(html);
+        },
+
+        error: function(xhr) {
+
+            console.error("Submission loading failed:", xhr.responseText);
+
+            $("#contractSubmissionsList").html(`
+                <div class="alert alert-danger mb-0">
+                    An error occurred while loading submissions.
+                </div>
+            `);
+        }
+    });
+}
+
+$(document).on("click", ".review-submission-btn", function() {
+
+    const button = $(this);
+    const contractId = Number(button.data("contract-id"));
+    const submissionId = Number(button.data("submission-id"));
+    const decision = button.data("decision");
+
+    let feedback = "";
+
+    if (decision === "revision") {
+        feedback = prompt(
+            "Explain what the worker needs to revise:"
+        );
+
+        if (feedback === null) {
+            return;
+        }
+
+        feedback = feedback.trim();
+
+        if (feedback === "") {
+            alert("Please provide revision feedback.");
+            return;
+        }
+    }
+
+    const confirmation = decision === "approve"
+        ? "Approve this submission?"
+        : "Request revisions from the worker?";
+
+    if (!confirm(confirmation)) {
+        return;
+    }
+
+    button.prop("disabled", true);
+
+    $.ajax({
+        url: "../contract/reviewsubmission.php",
+        type: "POST",
+        contentType: "application/json",
+        dataType: "json",
+
+        data: JSON.stringify({
+            contract_id: contractId,
+            submission_id: submissionId,
+            decision: decision,
+            feedback: feedback
+        }),
+
+        success: function(response) {
+
+            if (!response.status) {
+                alert(response.message || "Review failed.");
+                button.prop("disabled", false);
+                return;
+            }
+
+            alert(response.message);
+
+            // Refresh contract status and role-based actions.
+            location.reload();
+        },
+
+        error: function(xhr) {
+            console.error(
+                "Review failed:",
+                xhr.status,
+                xhr.responseText
+            );
+
+            let message = "Could not process the review.";
+
+            try {
+                const response = JSON.parse(xhr.responseText);
+
+                if (response.message) {
+                    message = response.message;
+                }
+            } catch (error) {
+                // Keep the default message if the response isn't JSON.
+            }
+
+            alert(message);
+            button.prop("disabled", false);
+        }
+    });
+});
+
+function loadRecentActivity(contractId) {
+    const preview = $("#contractActivityPreview");
+
+    preview.html(
+        '<div class="text-muted small">Loading recent activity...</div>'
+    );
+
+    $.ajax({
+        url: "../contract/getactivity.php",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({ id: contractId }),
+        dataType: "json",
+
+        success: function (response) {
+            if (!response.success) {
+                preview.html(
+                    '<div class="text-danger small">Could not load activity.</div>'
+                );
+                return;
+            }
+
+            if (response.activities.length === 0) {
+                preview.html(
+                    '<div class="text-muted small">No activity recorded yet.</div>'
+                );
+                return;
+            }
+
+            let html = "";
+
+            response.activities.forEach(function (activity) {
+                html += renderActivity(activity);
+            });
+
+            preview.html(html);
+        },
+
+        error: function (xhr) {
+            console.log("RECENT ACTIVITY ERROR:", xhr.responseText);
+
+            preview.html(
+                '<div class="text-danger small">Failed to load activity.</div>'
+            );
+        }
+    });
+}
+
+$(document).on("click", "#viewAllActivityBtn", function () {
+    const contractId = $("#viewContractId").text().trim();
+
+    if (!contractId) {
+        return;
+    }
+
+    $("#allActivityContractId").val(contractId);
+    $("#allActivityList").empty();
+    $("#allActivityEmpty").addClass("d-none");
+    $("#allActivityError").addClass("d-none");
+    $("#allActivityLoading").removeClass("d-none");
+
+    // Hide the details modal before opening the history modal.
+    $("#userContractModal").one("hidden.bs.modal", function () {
+        $("#allActivityModal").modal("show");
+    });
+
+    $("#userContractModal").modal("hide");
+
+    $.ajax({
+        url: "../contract/getallactivity.php",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({ id: contractId }),
+        dataType: "json",
+
+        success: function (response) {
+            $("#allActivityLoading").addClass("d-none");
+
+            if (!response.success) {
+                $("#allActivityError")
+                    .text(response.message || "Could not load activity.")
+                    .removeClass("d-none");
+                return;
+            }
+
+            if (response.activities.length === 0) {
+                $("#allActivityEmpty").removeClass("d-none");
+                return;
+            }
+
+            let html = "";
+
+            response.activities.forEach(function (activity) {
+                html += renderActivity(activity);
+            });
+
+            $("#allActivityList").html(html);
+        },
+
+        error: function (xhr) {
+            console.log("ALL ACTIVITY ERROR:", xhr.responseText);
+
+            $("#allActivityLoading").addClass("d-none");
+            $("#allActivityError")
+                .text("Failed to load activity. Please try again.")
+                .removeClass("d-none");
+        }
+    });
+});
+
 })

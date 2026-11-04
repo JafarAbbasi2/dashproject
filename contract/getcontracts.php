@@ -25,7 +25,7 @@ c.status,
 c.time,
 
 worker.name AS worker_name,
-manager.name AS manger_name
+manager.name AS manager_name
 
 FROM contracts AS c
 
@@ -45,7 +45,7 @@ $result = $con->query($sql);
 
 if(!$result){
     echo json_encode([
-        "status" => fasle,
+        "status" => false,
         "message" => "DATABASE query failed",
         "error" => mysqli_error($con)
     ]);

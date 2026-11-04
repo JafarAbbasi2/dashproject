@@ -1005,8 +1005,7 @@ data-page="contracts"
                     Pending
                 </option>
 
-                <option value="accepted">
-                    Accepted
+                
                 </option>
 
                 <option value="in_progress">
@@ -1329,6 +1328,7 @@ data-page="contracts"
             </div>
 
 
+
             <!-- ACTIVITY PREVIEW -->
 
             <div class="mb-4">
@@ -1361,6 +1361,34 @@ data-page="contracts"
                 </div>
 
             </div>
+
+            <!-- WORK SUBMISSIONS -->
+
+            <div class="mb-4" id="contractSubmissionsSection">
+
+                <div class="d-flex justify-content-between align-items-center mb-2">
+
+                    <h6 class="fw-bold mb-0">
+                        <i class="bi bi-file-earmark-check me-1"></i>
+                        Work Submissions
+                    </h6>
+
+                    <span class="badge bg-secondary" id="submissionCount">
+                        0
+                    </span>
+
+                </div>
+
+                <div id="contractSubmissionsList">
+
+                    <div class="text-muted text-center py-3">
+                        Open a contract to view its submissions.
+                    </div>
+
+                </div>
+
+            </div>
+
 
 
             <!-- ACTION AREA -->
@@ -1412,6 +1440,45 @@ data-page="contracts"
 
 </div>
 
+</div>
+
+
+
+<!-- Full Contract Activity Modal -->
+<div class="modal fade" id="allActivityModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title">Contract Activity</h5>
+                    <small class="text-muted">
+                        Complete history of this contract
+                    </small>
+                </div>
+                <button type="button" class="btn-close"
+                        data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <input type="hidden" id="allActivityContractId">
+
+                <div id="allActivityLoading" class="text-center py-4 d-none">
+                    <div class="spinner-border spinner-border-sm"></div>
+                    <p class="mt-2 mb-0">Loading activity...</p>
+                </div>
+
+                <div id="allActivityList"></div>
+
+                <div id="allActivityEmpty" class="text-center py-4 d-none">
+                    <i class="bi bi-clock-history fs-2"></i>
+                    <p class="mt-2 mb-0">No activity recorded yet.</p>
+                </div>
+
+                <div id="allActivityError"
+                     class="alert alert-danger d-none"></div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- ================================================= -->

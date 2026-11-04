@@ -6,7 +6,7 @@ session_start();
 if($_SESSION['role'] === 'admin'){
 if(!isset($_GET["id"])){
 
-    header("location: index.php");
+    header("location: ../index.php");
     exit();
 
 }} else if($_SESSION['role'] === 'user'){
